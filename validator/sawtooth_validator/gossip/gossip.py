@@ -158,8 +158,6 @@ class Gossip:
             connection_id (str): A unique identifier which identifies an
                 connection on the network server socket.
         """
-        # Needs to actually be the list of advertised endpoints of
-        # our peers
         peer_endpoints = list(self.get_peers().values())
         if self.endpoint:
             peer_endpoints.append(self.endpoint)
@@ -226,7 +224,7 @@ class Gossip:
         """
         statuses = self._topology.get_connection_statuses()
         peers = self.get_peers()
-        return {k: v for k, v in peers.items() if statuses[k] == PeerStatus.PEER}
+        return {k: v for k, v in peers.items() if statuses.get(k) == PeerStatus.PEER}
 
     def _try_remove_abandoned_peers(self, connection_id: str, endpoint: str) -> bool:
         """Remove any abandoned peers and return True if any.
@@ -239,7 +237,7 @@ class Gossip:
             bool: returns true (an error) if at least one abandoned peer was found and removed.
         """
         stale_peers = {conn_id: peer for conn_id, peer in self._peers.items()
-                       if peer == endpoint and self._topology._connection_statuses[conn_id] == PeerStatus.PEER}
+                       if peer == endpoint and self._topology._connection_statuses.get(conn_id) == PeerStatus.PEER}
         for id in stale_peers.keys():
             LOGGER.debug("Abandoned peer {} removed.".format(id))
             self._unregister_peer(id)
@@ -314,8 +312,9 @@ class Gossip:
             connection_id (str): A unique identifier which identifies an
                 connection on the network server socket.
         """
-        with self._lock:
-            self._unregister_peer(connection_id)
+        with self._topology._lock:
+            with self._lock:
+                self._unregister_peer(connection_id)
 
     def get_time_to_live(self):
         time_to_live = \
@@ -828,7 +827,8 @@ class ConnectionManager(InstrumentedThread):
             Note: Needs sync, CManager and Gossip locks
         """
 
-        for conn_id, endpoint in self._gossip._peers.items():
+        peers = copy.copy(self._gossip._peers)
+        for conn_id, endpoint in peers.items():
             try:
                 self._network.get_connection_id_by_endpoint(endpoint)
             except KeyError:
@@ -884,6 +884,8 @@ class ConnectionManager(InstrumentedThread):
             except KeyError:
                 # If the connection does not exist, send a connection request
                 with self._lock:
+                    if endpoint in self._temp_endpoints:
+                        del self._temp_endpoints[endpoint]
 
                     self._temp_endpoints[endpoint] = EndpointInfo(
                         EndpointStatus.TOPOLOGY,
@@ -940,10 +942,11 @@ class ConnectionManager(InstrumentedThread):
             # if the connection uri wasn't found in the network's
             # connections, it raises a KeyError and we need to add
             # a new outbound connection
-            self._temp_endpoints[endpoint] = EndpointInfo(
-                EndpointStatus.PEERING,
-                time.time(),
-                INITIAL_RETRY_FREQUENCY)
+            with self._lock:
+                self._temp_endpoints[endpoint] = EndpointInfo(
+                    EndpointStatus.PEERING,
+                    time.time(),
+                    INITIAL_RETRY_FREQUENCY)
             self._network.add_outbound_connection(endpoint)
 
     def _reset_candidate_peer_endpoints(self):
@@ -1026,7 +1029,7 @@ class ConnectionManager(InstrumentedThread):
             else:
                 LOGGER.debug("Endpoint has unknown status: %s", endpoint)
 
-        self._remove_temp_endpoint(endpoint)
+            self._remove_temp_endpoint(endpoint)
 
     def _connect_success_peering(self, connection_id, endpoint):
         """Needs sync"""
