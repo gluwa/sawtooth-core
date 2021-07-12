@@ -264,11 +264,7 @@ class Gossip:
         Note: Needs sync [ConnectionManager lock]
         """
         with self._lock:
-            found_abandoned_peers = self._try_remove_abandoned_peers(
-                connection_id, endpoint)
-            if found_abandoned_peers:
-                raise PeeringException("Already peered with {}."
-                                       .format(endpoint))
+            self._try_remove_abandoned_peers( connection_id, endpoint)
             if len(self._peers) < self._maximum_peer_connectivity:
                 self._peers[connection_id] = endpoint
                 self._topology.set_connection_status(connection_id, PeerStatus.PEER)
@@ -630,7 +626,7 @@ class ConnectionManager(InstrumentedThread):
         with self._lock:
             with self._gossip._lock:
                 self._refresh_peer_list()
-                peers = self._gossip._peers
+                peers = self._gossip._peers.copy()
         peer_count = len(peers)
         if peer_count < self._min_peers:
             LOGGER.debug(
@@ -991,12 +987,12 @@ class ConnectionManager(InstrumentedThread):
             try:
                 self._network.send(validator_pb2.Message.NETWORK_DISCONNECT,
                                    msg.SerializeToString(),
-                                   connection_id)
+                                   connection_id,
+                                   one_way=True)
             except ValueError:
                 LOGGER.debug(
                     "remove temporary connection passed on network send.")
             self._remove_connection_status(connection_id)
-            self._network.remove_connection(connection_id)
         elif status == PeerStatus.PEER:
             LOGGER.debug("Connection close request for peer ignored: %s",
                          connection_id)
