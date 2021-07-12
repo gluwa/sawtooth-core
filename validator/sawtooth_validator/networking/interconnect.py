@@ -238,10 +238,10 @@ class _SendReceive:
     @asyncio.coroutine
     def _do_router_heartbeat(self):
         check_time = time.time()
+        #lock?
         expired = \
             [(ident, check_time - timestamp)
-             for ident, timestamp
-             in self._last_message_times.items()
+             for ident, timestamp in self._last_message_times.items()
              if check_time - timestamp > self._heartbeat_interval]
         for zmq_identity, elapsed in expired:
             if self._is_connection_lost(
@@ -287,10 +287,10 @@ class _SendReceive:
     def _do_dealer_heartbeat(self):
         if self._last_message_time and \
                 self._is_connection_lost(self._last_message_time):
+            elapsed = time.time() - self._last_message_time
             LOGGER.info("No response from %s in %s seconds"
                         " - removing connection.",
-                        self._connection,
-                        self._last_message_time)
+                        self._connection, elapsed)
             connection_id = hashlib.sha512(
                 self.connection.encode()).hexdigest()
             if connection_id in self._connections:
@@ -681,9 +681,10 @@ class _SendReceive:
         self._event_loop.stop()
 
     @asyncio.coroutine
-    def _stop(self):
-        self._dispatcher.remove_send_message(self._connection)
-        self._dispatcher.remove_send_last_message(self._connection)
+    def _stop(self, drop_functors=True):
+        if drop_functors:
+            self._dispatcher.remove_send_message(self._connection)
+            self._dispatcher.remove_send_last_message(self._connection)
         yield from self._stop_auth()
 
         for task in self._cancellable_tasks:
@@ -698,20 +699,17 @@ class _SendReceive:
     def shutdown(self):
         self._dispatcher.remove_send_message(self._connection)
         self._dispatcher.remove_send_last_message(self._connection)
-        if self._event_loop is None:
-            return
-        if self._event_loop.is_closed():
+        if self._event_loop is None or self._event_loop.is_closed():
             return
 
         if self._event_loop.is_running():
             if self._auth is not None:
                 self._event_loop.call_soon_threadsafe(self._auth.stop)
+            asyncio.ensure_future(self._stop(drop_functors=False), loop=self._event_loop)
         else:
             # event loop was never started, so the only Task that is running
             # is the Auth Task.
             self._event_loop.run_until_complete(self._stop_auth())
-
-        asyncio.ensure_future(self._stop(), loop=self._event_loop)
 
 
 class Interconnect:
@@ -839,7 +837,7 @@ class Interconnect:
 
     def connection_id_to_endpoint(self, connection_id):
         """
-        Get stored public key for a connection.
+        Get stored endpoint for a connection.
         """
         with self._connections_lock:
             try:
