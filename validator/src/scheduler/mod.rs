@@ -15,11 +15,11 @@
  * ------------------------------------------------------------------------------
  */
 
-use proto::events::Event;
-use proto::transaction_receipt::StateChange;
+use crate::proto::events::Event;
+use crate::proto::transaction_receipt::StateChange;
 
 mod execution_result_ffi;
-use batch::Batch;
+use crate::batch::Batch;
 
 pub mod py_scheduler;
 
@@ -30,6 +30,7 @@ pub trait Scheduler: Sync + Send {
     /// the block are written to the database, otherwise not.
     fn add_batch(
         &mut self,
+        tip: u64,
         batch: Batch,
         expected_state_hash: Option<&str>,
         required: bool,

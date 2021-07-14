@@ -15,20 +15,19 @@
  * ------------------------------------------------------------------------------
  */
 
-use cpython;
 use cpython::ObjectProtocol;
 use cpython::PyResult;
 
-use batch::Batch;
+use crate::batch::Batch;
 
 use protobuf::ProtobufError;
 
-use scheduler::execution_result_ffi::{PyBatchExecutionResult, PyTxnExecutionResult};
-use scheduler::{ExecutionResults, Scheduler, SchedulerError};
+use crate::scheduler::execution_result_ffi::{PyBatchExecutionResult, PyTxnExecutionResult};
+use crate::scheduler::{ExecutionResults, Scheduler, SchedulerError};
 
 impl From<ProtobufError> for SchedulerError {
     fn from(other: ProtobufError) -> SchedulerError {
-        SchedulerError::Other(other.to_string().into())
+        SchedulerError::Other(other.to_string())
     }
 }
 
@@ -73,6 +72,7 @@ impl PyScheduler {
 impl Scheduler for PyScheduler {
     fn add_batch(
         &mut self,
+        tip: u64,
         batch: Batch,
         expected_state_hash: Option<&str>,
         required: bool,
@@ -85,7 +85,7 @@ impl Scheduler for PyScheduler {
             .call_method(
                 py,
                 "add_batch",
-                (batch, expected_state_hash, required),
+                (tip, batch, expected_state_hash, required),
                 None,
             )
             .expect("No method add_batch on python scheduler");
@@ -185,7 +185,7 @@ impl Scheduler for PyScheduler {
                                 .collect(),
                         ),
                     ),
-                    None => (val.2.clone(), None),
+                    None => (val.2, None),
                 })
                 .collect();
 

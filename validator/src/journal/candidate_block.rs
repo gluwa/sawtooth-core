@@ -19,25 +19,26 @@
 
 use std::collections::HashSet;
 
-use cpython;
 use cpython::ObjectProtocol;
 use cpython::PyClone;
 use cpython::Python;
 
-use hashlib::sha256_digest_strs;
+use crate::hashlib::sha256_digest_strs;
 
-use batch::Batch;
-use block::Block;
-use transaction::Transaction;
+use crate::batch::Batch;
+use crate::block::Block;
+use crate::transaction::Transaction;
 
-use journal::chain_commit_state::TransactionCommitCache;
-use journal::commit_store::CommitStore;
-use journal::validation_rule_enforcer;
-use state::settings_view::SettingsView;
+use crate::journal::chain_commit_state::TransactionCommitCache;
+use crate::journal::commit_store::CommitStore;
+use crate::journal::validation_rule_enforcer;
+use crate::state::settings_view::SettingsView;
 
-use pylogger;
+use crate::pylogger;
 
-use scheduler::Scheduler;
+use crate::scheduler::Scheduler;
+
+use log::{debug, warn};
 
 #[derive(Debug)]
 pub enum CandidateBlockError {
@@ -55,7 +56,7 @@ pub struct FinalizeBlockResult {
 pub struct CandidateBlock {
     previous_block: Block,
     commit_store: CommitStore,
-    scheduler: Box<Scheduler>,
+    scheduler: Box<dyn Scheduler>,
     max_batches: usize,
     block_builder: cpython::PyObject,
     batch_injectors: Vec<cpython::PyObject>,
@@ -70,6 +71,8 @@ pub struct CandidateBlock {
     pending_batch_ids: HashSet<String>,
     injected_batch_ids: HashSet<String>,
 
+    invalid_batch_ids: HashSet<String>,
+
     committed_txn_cache: TransactionCommitCache,
 }
 
@@ -78,7 +81,7 @@ impl CandidateBlock {
     pub fn new(
         previous_block: Block,
         commit_store: CommitStore,
-        scheduler: Box<Scheduler>,
+        scheduler: Box<dyn Scheduler>,
         committed_txn_cache: TransactionCommitCache,
         block_builder: cpython::PyObject,
         max_batches: usize,
@@ -101,6 +104,7 @@ impl CandidateBlock {
             pending_batches: vec![],
             pending_batch_ids: HashSet::new(),
             injected_batch_ids: HashSet::new(),
+            invalid_batch_ids: HashSet::new()
         }
     }
 
@@ -285,8 +289,8 @@ impl CandidateBlock {
                 self.pending_batch_ids.insert(batch_id.clone());
 
                 let injected = self.injected_batch_ids.contains(batch_id.as_str());
-
-                self.scheduler.add_batch(b, None, injected).unwrap()
+                let tip = self.commit_store.get_chain_head().unwrap().block_num;
+                self.scheduler.add_batch( tip + 1, b, None, injected).unwrap()
             }
         } else {
             debug!(
@@ -366,11 +370,6 @@ impl CandidateBlock {
         let mut bad_batches = vec![];
         let mut pending_batches = vec![];
 
-        if self.injected_batch_ids == valid_batch_ids {
-            // There only injected batches in this block
-            return Ok(None);
-        }
-
         for batch in self.pending_batches.clone() {
             let header_signature = &batch.header_signature.clone();
             if batch.trace {
@@ -395,7 +394,7 @@ impl CandidateBlock {
                         "Batch {} is invalid, due to missing txn dependency",
                         header_signature
                     );
-                    bad_batches.push(batch.clone());
+                    bad_batches.push(batch);
                     pending_batches.clear();
                     pending_batches.append(
                         &mut self
@@ -415,10 +414,16 @@ impl CandidateBlock {
                     committed_txn_cache.add_batch(&batch.clone());
                 }
             } else {
+                self.invalid_batch_ids.insert(batch.header_signature.clone());
                 bad_batches.push(batch.clone());
                 debug!("Batch {} invalid, not added to block", header_signature);
             }
         }
+
+        if self.injected_batch_ids == valid_batch_ids {
+            return Ok(None);
+        }
+
         if execution_results.ending_state_hash.is_none() || self.no_batches_added(&builder) {
             debug!("Abandoning block, no batches added");
             return Ok(None);
@@ -514,5 +519,13 @@ impl CandidateBlock {
         } else {
             Err(CandidateBlockError::BlockEmpty)
         }
+    }
+
+    pub fn has_invalid_batches(&self) -> bool {
+        return !self.invalid_batch_ids.is_empty();
+    }
+
+    pub fn get_invalid_batch_ids(&self) -> &HashSet<String> {
+        return &self.invalid_batch_ids;
     }
 }
