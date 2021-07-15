@@ -15,7 +15,7 @@
 # docker build -f adm/Dockerfile-installed-xenial -t sawtooth-admin-tools .
 
 # -------------=== admin tools build ===-------------
-FROM ubuntu:xenial as adm-builder
+FROM ubuntu:xenial-20210114 as adm-builder
 
 ENV VERSION=AUTO_STRICT
 
@@ -48,7 +48,7 @@ RUN export VERSION=$(../bin/get_version) \
  && /root/.cargo/bin/cargo deb --deb-version $VERSION
 
 # -------------=== admin tools docker build ===-------------
-FROM ubuntu:xenial
+FROM ubuntu:xenial-20210114
 
 COPY --from=adm-builder /project/adm/target/debian/sawadm_*.deb /tmp
 
