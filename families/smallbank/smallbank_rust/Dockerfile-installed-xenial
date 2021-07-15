@@ -15,7 +15,7 @@
 # docker build -f families/smallbank/smallbank_rust/Dockerfile-installed-xenial -t sawtooth-smallbank-tp-rust .
 
 # -------------=== smallbank rust build ===-------------
-FROM ubuntu:xenial as smallbank-rust-builder
+FROM ubuntu:xenial-20210114 as smallbank-rust-builder
 
 ENV VERSION=AUTO_STRICT
 
@@ -48,7 +48,7 @@ RUN export VERSION=$(../../../bin/get_version) \
  && /root/.cargo/bin/cargo deb --deb-version $VERSION
 
 # -------------=== smallbank rust docker build ===-------------
-FROM ubuntu:xenial
+FROM ubuntu:xenial-20210114
 
 COPY --from=smallbank-rust-builder /project/families/smallbank/smallbank_rust/target/debian/sawtooth-smallbank*.deb /tmp
 
