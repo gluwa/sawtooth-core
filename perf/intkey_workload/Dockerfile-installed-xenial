@@ -15,7 +15,7 @@
 # docker build -f perf/intkey_workload/Dockerfile-installed-xenial -t sawtooth-intkey-workload .
 
 # -------------=== intkey workload build ===-------------
-FROM ubuntu:xenial as intkey-workload-builder
+FROM ubuntu:xenial-20210114 as intkey-workload-builder
 
 ENV VERSION=AUTO_STRICT
 
@@ -48,7 +48,7 @@ RUN export VERSION=$(../../bin/get_version) \
  && /root/.cargo/bin/cargo deb --deb-version $VERSION
 
 # -------------=== intkey workload docker build ===-------------
-FROM ubuntu:xenial
+FROM ubuntu:xenial-20210114
 
 COPY --from=intkey-workload-builder /project/perf/intkey_workload/target/debian/sawtooth-intkey-workload*.deb /tmp
 
