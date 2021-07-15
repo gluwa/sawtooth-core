@@ -15,7 +15,7 @@
 # docker build -f perf/smallbank_workload/Dockerfile-installed-xenial -t sawtooth-smallbank-workload .
 
 # -------------=== cli build ===-------------
-FROM ubuntu:xenial as cli-builder
+FROM ubuntu:xenial-20210114 as cli-builder
 
 ENV VERSION=AUTO_STRICT
 
@@ -51,7 +51,7 @@ RUN /project/bin/protogen \
 
 
 # -------------=== smallbank workload build ===-------------
-FROM ubuntu:xenial as smallbank-workload-builder
+FROM ubuntu:xenial-20210114 as smallbank-workload-builder
 
 ENV VERSION=AUTO_STRICT
 
@@ -84,7 +84,7 @@ RUN export VERSION=$(../../bin/get_version) \
  && /root/.cargo/bin/cargo deb --deb-version $VERSION
 
 # -------------=== smallbank workload docker build ===-------------
-FROM ubuntu:xenial
+FROM ubuntu:xenial-20210114
 
 COPY --from=cli-builder /project/python3-sawtooth-cli* /tmp
 COPY --from=smallbank-workload-builder /project/perf/smallbank_workload/target/debian/sawtooth-smallbank-workload*.deb /tmp
