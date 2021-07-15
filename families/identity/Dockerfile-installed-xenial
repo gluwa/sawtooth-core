@@ -16,7 +16,7 @@
 
 # -------------=== sawtooth identity rust build ===-------------
 
-FROM ubuntu:xenial as identity-rust-builder
+FROM ubuntu:xenial-20210114 as identity-rust-builder
 
 ENV VERSION=AUTO_STRICT
 
@@ -49,7 +49,7 @@ RUN export VERSION=$(../../../bin/get_version) \
  && /root/.cargo/bin/cargo deb --deb-version $VERSION
 
  # -------------=== identity docker build ===-------------
-FROM ubuntu:xenial
+FROM ubuntu:xenial-20210114
 
 COPY --from=identity-tp-builder /project/families/identity/sawtooth_identity/target/debian/*.deb /tmp
 
