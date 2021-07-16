@@ -16,7 +16,7 @@
 
 # -------------=== rest api build ===-------------
 
-FROM ubuntu:xenial as rest-api-builder
+FROM ubuntu:xenial-20210114 as rest-api-builder
 
 ENV VERSION=AUTO_STRICT
 
@@ -48,7 +48,7 @@ RUN /project/bin/protogen \
  && dpkg-buildpackage -b -rfakeroot -us -uc
 
  # -------------=== rest api docker build ===-------------
-FROM ubuntu:xenial
+FROM ubuntu:xenial-20210114
 
 COPY --from=rest-api-builder /project/python3-sawtooth-rest-api*.deb /tmp
 
