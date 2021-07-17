@@ -16,7 +16,7 @@
 
 # -------------=== sawtooth integration build ===-------------
 
-FROM ubuntu:xenial as sawtooth-integration-builder
+FROM ubuntu:xenial-20210416 as sawtooth-integration-builder
 
 ENV VERSION=AUTO_STRICT
 
@@ -39,7 +39,7 @@ RUN cd /project/integration/ \
  && DEB_BUILD_OPTIONS=nocheck dpkg-buildpackage -b -rfakeroot -us -uc
 
  # -------------=== sawtooth-integration docker build ===-------------
-FROM ubuntu:xenial
+FROM ubuntu:xenial-20210416
 
 COPY --from=sawtooth-integration-builder /project/python3-sawtooth-integration*.deb /tmp
 
