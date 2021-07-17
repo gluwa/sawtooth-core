@@ -17,7 +17,7 @@
 # docker build -f families/settings/Dockerfile-installed-xenial -t sawtooth-settings-tp .
 
 # -------------=== sawtooth settings rust build ===-------------
-FROM ubuntu:xenial as settings-rust-builder
+FROM ubuntu:xenial-20210416 as settings-rust-builder
 
 ENV VERSION=AUTO_STRICT
 
@@ -50,7 +50,7 @@ RUN export VERSION=$(../../../bin/get_version) \
  && /root/.cargo/bin/cargo deb --deb-version $VERSION
 
 # -------------=== settings rust docker build ===-------------
-FROM ubuntu:xenial
+FROM ubuntu:xenial-20210416
 
 COPY --from=settings-rust-builder /project/families/settings/sawtooth_settings/target/debian/sawtooth-settings*.deb /tmp
 
