@@ -6,6 +6,28 @@ on:
   pull_request:
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install Rust
+      run: |
+        # Similar to Dockerfile
+        # TODO: make this a stand-alone script
+        sudo curl https://sh.rustup.rs -sSf > /usr/bin/rustup-init
+        sudo chmod +x /usr/bin/rustup-init
+        sudo rustup-init -y
+
+    - name: Lint with clippy
+      run: |
+        pushd families/creditcoin/ccprocessor-rust
+
+        cargo clippy -- --cfg test -D warnings
+
+        popd
+
   build:
     runs-on: ubuntu-latest
 
