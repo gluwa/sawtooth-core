@@ -54,4 +54,5 @@ RUN cd /ccprocessor-rust \
  && cargo build --release \
  && cp ./target/release/ccprocessor-rust ./bin/ccprocessor-rust \
  && cargo build --release --features 'old-sawtooth' \
+ && cargo test \
  && cp ./target/release/ccprocessor-rust ./bin/ccprocessor-rust-1.7
