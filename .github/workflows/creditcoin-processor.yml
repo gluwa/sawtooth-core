@@ -27,14 +27,14 @@ jobs:
 
         popd
 
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v2
-
-    - name: Build
-      run: |
-        pushd families/creditcoin
-        docker build -t gluwa/creditcoin-processor .
-        popd
+#  build:
+#    runs-on: ubuntu-latest
+#
+#    steps:
+#    - uses: actions/checkout@v2
+#
+#    - name: Build
+#      run: |
+#        pushd families/creditcoin
+#        docker build -t gluwa/creditcoin-processor .
+#        popd
