@@ -1,0 +1,19 @@
+name: creditcoin-processor
+
+on:
+  push:
+    branches: dev
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Build
+      run: |
+        pushd families/creditcoin
+        docker build -t gluwa/creditcoin-processor .
+        popd
