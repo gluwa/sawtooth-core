@@ -17,25 +17,19 @@
 #    along with Creditcoin. If not, see <https://www.gnu.org/licenses/>.
 #
 
-FROM ubuntu:bionic
+apt-get update \
+ && apt-get install -y \
+ curl \
+ gcc \
+ pkg-config \
+ make \
+ cmake \
+ libssl-dev \
+ automake \
+ autoconf \
+ unzip
 
-COPY ./scripts /scripts
-RUN /scripts/setup-dependencies.sh && \
-    /scripts/setup-rust.sh
-
-ENV PATH=$PATH:/project/sawtooth-core/bin:/protoc3/bin:/root/.cargo/bin \
-    CARGO_INCREMENTAL=0
-
-WORKDIR /ccprocessor-rust
-
-COPY ./ccprocessor-rust /ccprocessor-rust
-
-RUN cd /ccprocessor-rust \
- && echo "\033[0;32m--- Building ccprocessor-rust ---\n\033[0m" \
- && rm -rf ./bin/ \
- && mkdir -p ./bin/ \
- && cargo build --release \
- && cp ./target/release/ccprocessor-rust ./bin/ccprocessor-rust \
- && cargo build --release --features 'old-sawtooth' \
- && cargo test \
- && cp ./target/release/ccprocessor-rust ./bin/ccprocessor-rust-1.7
+# For Building Protobufs
+curl -OLsS https://github.com/google/protobuf/releases/download/v3.5.1/protoc-3.5.1-linux-x86_64.zip \
+ && unzip protoc-3.5.1-linux-x86_64.zip -d protoc3 \
+ && rm protoc-3.5.1-linux-x86_64.zip

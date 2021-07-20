@@ -7,18 +7,17 @@ on:
 
 jobs:
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-bionic
 
     steps:
     - uses: actions/checkout@v2
 
     - name: Install Rust
       run: |
-        # Similar to Dockerfile
-        # TODO: make this a stand-alone script
-        sudo curl https://sh.rustup.rs -sSf > /usr/bin/rustup-init
-        sudo chmod +x /usr/bin/rustup-init
-        sudo rustup-init -y
+        pushd families/creditcoin
+
+        sudo ./scripts/setup-dependencies.sh
+        sudo ./scripts/setup-rust.sh
 
     - name: Lint with clippy
       run: |

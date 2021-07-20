@@ -19,9 +19,26 @@
 
 FROM ubuntu:bionic
 
-COPY ./scripts /scripts
-RUN /scripts/setup-dependencies.sh && \
-    /scripts/setup-rust.sh
+RUN apt-get update \
+ && apt-get install -y \
+ curl \
+ gcc \
+ pkg-config \
+ make \
+ cmake \
+ libssl-dev \
+ automake \
+ autoconf \
+ unzip
+
+# For Building Protobufs
+RUN curl -OLsS https://github.com/google/protobuf/releases/download/v3.5.1/protoc-3.5.1-linux-x86_64.zip \
+ && unzip protoc-3.5.1-linux-x86_64.zip -d protoc3 \
+ && rm protoc-3.5.1-linux-x86_64.zip
+
+RUN curl https://sh.rustup.rs -sSf > /usr/bin/rustup-init \
+ && chmod +x /usr/bin/rustup-init \
+ && rustup-init -y
 
 ENV PATH=$PATH:/project/sawtooth-core/bin:/protoc3/bin:/root/.cargo/bin \
     CARGO_INCREMENTAL=0

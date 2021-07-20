@@ -17,25 +17,6 @@
 #    along with Creditcoin. If not, see <https://www.gnu.org/licenses/>.
 #
 
-FROM ubuntu:bionic
-
-COPY ./scripts /scripts
-RUN /scripts/setup-dependencies.sh && \
-    /scripts/setup-rust.sh
-
-ENV PATH=$PATH:/project/sawtooth-core/bin:/protoc3/bin:/root/.cargo/bin \
-    CARGO_INCREMENTAL=0
-
-WORKDIR /ccprocessor-rust
-
-COPY ./ccprocessor-rust /ccprocessor-rust
-
-RUN cd /ccprocessor-rust \
- && echo "\033[0;32m--- Building ccprocessor-rust ---\n\033[0m" \
- && rm -rf ./bin/ \
- && mkdir -p ./bin/ \
- && cargo build --release \
- && cp ./target/release/ccprocessor-rust ./bin/ccprocessor-rust \
- && cargo build --release --features 'old-sawtooth' \
- && cargo test \
- && cp ./target/release/ccprocessor-rust ./bin/ccprocessor-rust-1.7
+curl https://sh.rustup.rs -sSf > /usr/bin/rustup-init \
+ && chmod +x /usr/bin/rustup-init \
+ && rustup-init -y
